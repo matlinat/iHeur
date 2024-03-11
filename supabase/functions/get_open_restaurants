@@ -1,0 +1,28 @@
+CREATE OR REPLACE FUNCTION get_open_restaurants() RETURNS JSON AS $$
+DECLARE
+result JSON;
+$$
+BEGIN
+    SELECT
+        json_agg(json_build_object(
+            'rest_name', restaurant.rest_name,
+            'event_name', event.event_name,
+            'time_open', event_times.time_open,
+            'time_close', event_times.time_close,
+            'start_date', event.start_date,
+            'end_date', event.end_date,
+            'day_of_week', event_times.day_of_week
+        ))
+    INTO result
+    FROM
+        restaurant
+    JOIN event ON restaurant.id = event.restaurant_id
+    JOIN event_times ON event.id = event_times.event_id
+    WHERE
+        event_times.day_of_week = EXTRACT(dow FROM CURRENT_DATE)
+        AND CURRENT_TIME BETWEEN event_times.time_open AND event_times.time_close;
+
+    RETURN result;
+END;
+$$ 
+LANGUAGE plpgsql;

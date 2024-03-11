@@ -1,0 +1,82 @@
+DECLARE
+  reslon double precision;
+  reslat double precision;
+  rescity text;
+  reshousenumber text;
+  resstreet text;
+  rescountry text;
+  respostcode text;
+  resaddress_line1 text;
+  resaddress_line2 text;
+  rescountry_code text;
+  resdistrict text;
+  ressuburb text;
+  resresult_type text;
+  resformatted text;
+  response jsonb;
+  reslocation geography;
+  request text;
+  address_id UUID;
+
+  -- Exception handling variables
+  http_error text;
+BEGIN
+  request := 'https://api.geoapify.com/v1/geocode/search?housenumber=' || URLENCODE(housenumber) || '&street=' || URLENCODE(street) || '&postcode=' || URLENCODE(postcode) || '&city=' || URLENCODE(city) || '&country=' || URLENCODE(country) || '&lang=en&limit=1&type=amenity&format=json&apiKey=8773f56096ba4e5b96a5d8ac5b9343cc';
+
+  -- HTTP request and exception handling
+  BEGIN
+    SELECT content::jsonb -> 'results' -> 0
+    INTO response
+    FROM http_get(request);
+  EXCEPTION
+    WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS http_error = MESSAGE_TEXT;
+      RAISE EXCEPTION 'HTTP request failed: %', http_error;
+  END;
+
+  -- Check if the response has results
+  IF response -> 'results' IS NOT NULL AND jsonb_array_length(response -> 'results') > 0 THEN
+    -- Extract values from the response
+    reslon = response ->> 'long';
+    reslat = response ->> 'lat';
+    rescity = response ->> 'city';
+    reshousenumber = response ->> 'housenumber';
+    resstreet = response ->> 'street';
+    rescountry = response ->> 'country';
+    respostcode = response ->> 'postcode';
+    resaddress_line1 = response ->> 'address_line1';
+    resaddress_line2 = response ->> 'address_line2';
+    rescountry_code = response ->> 'country_code';
+    resdistrict = response ->> 'district';
+    ressuburb = response ->> 'suburb';
+    resresult_type = response ->> 'result_type';
+    resformatted = response ->> 'formatted';
+
+    -- Create a geography point
+    reslocation = ST_SetSRID(ST_MakePoint(reslon::double precision, reslat::double precision), 4326);
+
+    -- Update the address table
+    UPDATE address
+    SET 
+      long = reslon,
+      lat = reslat,
+      housenumber = reshousenumber,
+      street = resstreet,
+      city = rescity,
+      country = rescountry,
+      postcode = respostcode,
+      address_line1 = resaddress_line1,
+      address_line2 = resaddress_line2,
+      location = reslocation,
+      country_code = rescountry_code,
+      district = resdistrict,
+      suburb = ressuburb,
+      result_type = resresult_type,
+      formatted = resformatted
+    WHERE 
+      owner_id = address_id;
+  ELSE
+    -- Handle the case when there are no results in the response
+    RAISE EXCEPTION 'No results found in the geocoding response.';
+  END IF;
+END;

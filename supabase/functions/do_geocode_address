@@ -1,0 +1,77 @@
+CREATE OR REPLACE FUNCTION geoapify_geocode(
+    IN p_country VARCHAR(255),
+    IN p_city VARCHAR(255),
+    IN p_postcode VARCHAR(255),
+    IN p_street VARCHAR(255),
+    IN p_housenumber VARCHAR(255),
+    IN p_id INTEGER
+)
+RETURNS VARCHAR(255) AS $$
+DECLARE
+    api_url VARCHAR(255) := 'https://api.geoapify.com/v1/geocode';
+    api_key VARCHAR(255) := '8773f56096ba4e5b96a5d8ac5b9343cc';
+    address VARCHAR(255);
+    request_url VARCHAR(255);
+    response_json JSONB;
+    lat DOUBLE PRECISION;
+    lon DOUBLE PRECISION;
+BEGIN
+    -- Baue die Adresse zusammen
+    address := p_housenumber || ' ' || p_street || ', ' || p_postcode || ' ' || p_city || ', ' || p_country;
+
+    -- Baue die URL für die Geoapify-Anfrage
+    request_url := api_url || '?text=' || address || '&apiKey=' || api_key;
+
+    -- Führe die Geocoding-Anfrage durch
+    SELECT http_get(request_url)::jsonb INTO response_json;
+
+    -- Extrahiere die relevanten Informationen aus der API-Antwort
+    IF response_json->'features' IS NOT NULL AND (jsonb_array_length(response_json->'features') > 0) THEN
+        lat := (response_json->'features'->0->'properties'->'lat')::DOUBLE PRECISION;
+        lon := (response_json->'features'->0->'properties'->'lon')::DOUBLE PRECISION;
+
+        -- Speichere die Daten in der Datenbanktabelle
+        PERFORM save_to_table(p_id, p_country, p_city, p_postcode, p_street, p_housenumber, lat, lon);
+
+        RETURN 'Erfolgreich geocodiert: ' || lat || ', ' || lon;
+    ELSE
+        RETURN 'Geocodierung fehlgeschlagen: Adresse nicht gefunden';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 'Fehler bei der Geocodierung: ' || SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION save_to_table(
+    p_id INTEGER,
+    p_country VARCHAR(255),
+    p_city VARCHAR(255),
+    p_postcode VARCHAR(255),
+    p_street VARCHAR(255),
+    p_housenumber VARCHAR(255),
+    p_lat DOUBLE PRECISION,
+    p_lon DOUBLE PRECISION
+)
+RETURNS VOID AS $$
+BEGIN
+    -- Tabelle erstellen, wenn sie noch nicht existiert
+    EXECUTE '
+        CREATE TABLE IF NOT EXISTS GeoData (
+            ID SERIAL PRIMARY KEY,
+            Country VARCHAR(255),
+            City VARCHAR(255),
+            Postcode VARCHAR(255),
+            Street VARCHAR(255),
+            HouseNumber VARCHAR(255),
+            Latitude DOUBLE PRECISION,
+            Longitude DOUBLE PRECISION
+        )';
+
+    -- Daten in die Tabelle einfügen
+    EXECUTE '
+        INSERT INTO GeoData (ID, Country, City, Postcode, Street, HouseNumber, Latitude, Longitude)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ' USING p_id, p_country, p_city, p_postcode, p_street, p_housenumber, p_lat, p_lon;
+END;
+$$ LANGUAGE plpgsql;

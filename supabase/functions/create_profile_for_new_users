@@ -1,0 +1,14 @@
+CREATE OR REPLACE FUNCTION createprofilefornewusers()
+RETURNS TRIGGER AS
+$$
+BEGIN
+
+  INSERT INTO public.profile(id, email, display_name)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data ->> 'user_name');
+
+  RETURN NEW;
+
+END;
+$$
+LANGUAGE plpgsql
+SECURITY DEFINER;

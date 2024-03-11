@@ -1,0 +1,32 @@
+CREATE OR REPLACE FUNCTION getnearestrestaurants(latitude double precision, longitude double precision)
+RETURNS json AS
+DECLARE
+result json;
+$$
+BEGIN
+    SELECT json_agg(row_to_json(t))
+    INTO result
+    FROM (
+        SELECT
+            r.id,
+            a.long,
+            a.lat,
+            a.city,
+            a.postcode,
+            r.rest_name,
+            r.rest_rating_avg,
+            r.rest_rating_amount,
+            r.rest_header_image,
+            CAST(ST_Distance(a.location::geography, ST_MakePoint(longitude, latitude)::geography) AS INTEGER)/1000 AS distance
+        FROM
+            address a
+        JOIN
+            restaurant r ON a.owner_id = r.id
+        ORDER BY
+            ST_Distance(a.location::geography, ST_MakePoint(longitude, latitude)::geography)
+        LIMIT 10
+    ) t;
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+

@@ -1,0 +1,24 @@
+CREATE OR REPLACE FUNCTION get_rest_open_times(restaurantID uuid)
+RETURNS JSON AS
+$$
+DECLARE
+    result JSON;
+BEGIN
+    SELECT json_agg(json_build_object(
+        'day_of_week', day_of_week,
+        'time_open', time_open,
+        'time_close', time_close,
+        'start_date', start_date,
+        'end_date', end_date
+    ))
+    INTO result
+    FROM restaurant
+    JOIN event ON restaurant.id = event.restaurant_id
+    JOIN event_times ON event.id = event_times.event_id
+    WHERE restaurant.id = restaurantID;
+
+    RETURN COALESCE(result, '[]'::JSON); 
+
+END;
+$$
+LANGUAGE plpgsql;

@@ -1,0 +1,58 @@
+DECLARE
+    geoapify_url text;
+    response_text text;
+    response_json jsonb;
+    rlon double precision;
+    rlat double precision;
+
+BEGIN
+    -- Create the Geoapify API request URL
+    geoapify_url := 'https://api.geoapify.com/v1/geocode/search?limit=1&format=json&';
+    geoapify_url := geoapify_url || 'city=' || p_city || '&';
+    geoapify_url := geoapify_url || 'street=' || p_street || '&';
+    geoapify_url := geoapify_url || 'housenumber=' || p_housenumber || '&';
+    geoapify_url := geoapify_url || 'postcode=' || p_postalcode || '&';
+    geoapify_url := geoapify_url || 'country=' || p_country || '&';
+    geoapify_url := geoapify_url || 'limit=1&apiKey=YOUR_API_KEY'; -- Replace with your actual API key
+
+    -- Execute the HTTP request using the http-Extension
+    SELECT http_get(geoapify_url)::text INTO response_text;
+
+    -- Output the Geoapify response in the SQL console
+    RAISE NOTICE 'Geoapify Response: %', response_text;
+
+    -- Check if the response is empty
+    IF response_text IS NULL OR response_text = '' THEN
+        RAISE EXCEPTION 'Empty response received from Geoapify API';
+    END IF;
+
+    -- Attempt to parse JSON response
+    BEGIN
+        response_json := response_text::jsonb;
+    EXCEPTION
+        WHEN others THEN
+            RAISE EXCEPTION 'Error parsing JSON response: %', SQLERRM;
+    END;
+
+    -- Extract Lon/Lat data from the Geoapify response
+    SELECT
+        (temp_response->'geometry'->'coordinates'->>0)::double precision AS rlon,
+        (temp_response->'geometry'->'coordinates'->>1)::double precision AS rlat
+    INTO rlon, rlat
+    FROM jsonb_array_elements(response_json->'features') AS temp_response;
+
+    -- Update the Lon/Lat data in the table
+    UPDATE address
+    SET
+        city = p_city,
+        street = p_street,
+        housenumber = p_housenumber,
+        postcode = p_postalcode,
+        country = p_country,
+        long = rlon,
+        lat = rlat,
+        location = ST_SetSRID(ST_MakePoint(rlon, rlat), 4326)
+    WHERE
+        owner_id = '2e66799c-7144-424d-87ce-fe9466eacadd';
+
+END;

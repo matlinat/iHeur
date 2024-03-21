@@ -1,0 +1,8 @@
+${env.SUPABASE_URL}/restaurant?id=eq.${context.custom.originalQuery.current_id}&
+
+select=*,
+address(street,housenumber,postcode,city),
+restaurant_images(*),
+restaurant_features(*),
+phonenumber(*),
+restaurant_promotion(*)

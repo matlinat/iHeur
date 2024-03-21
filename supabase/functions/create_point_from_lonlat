@@ -1,0 +1,22 @@
+CREATE OR REPLACE FUNCTION create_point_from_lonlat(
+    point_id INTEGER
+)
+RETURNS geometry(Point)
+AS $$
+DECLARE
+    location geometry(Point);
+BEGIN
+    -- Holen der Längen- und Breitengradwerte für die angegebene ID
+    SELECT ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+    INTO location
+    FROM address -- Ersetze "deine_tabelle" durch den tatsächlichen Tabellennamen
+    WHERE owner_id = point_id;
+
+    -- Überprüfen, ob ein Punkt erstellt wurde
+    IF location IS NOT NULL THEN
+        RETURN location;
+    ELSE
+        RAISE EXCEPTION 'Punkt mit der angegebenen ID nicht gefunden';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

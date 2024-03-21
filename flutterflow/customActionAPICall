@@ -1,0 +1,48 @@
+// Automatic FlutterFlow imports
+import '/backend/schema/structs/index.dart';
+import '/backend/supabase/supabase.dart';
+import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart'; // Imports other custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+import 'package:flutter/material.dart';
+// Begin custom action code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<dynamic> getNearestRestaurants(String? longitude, String? latitude) async {
+  try {
+    var url = Uri.parse('https://zipcloud.ibsnet.co.jp/api/search');
+    
+    // JSON-Daten, die an den Server gesendet werden sollen
+    var jsonData = {
+      'longitude': longitude,
+      'latitude': latitude,
+    };
+
+    // JSON in einen String konvertieren
+    var jsonBody = jsonEncode(jsonData);
+
+    var response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonBody,
+    );
+
+    if (response.statusCode == 200) {
+      var jsonResponse = jsonDecode(response.body);
+      print(jsonResponse);
+      return jsonResponse;
+    } else {
+      print('Request failed with status: ${response.statusCode}.');
+      return null;
+    }
+  } catch (e) {
+    print('Error: $e');
+    return null;
+  }
+}

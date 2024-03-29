@@ -1,0 +1,47 @@
+drop view restaurant_index;
+
+create view 
+
+restaurant_index as
+
+select 
+
+r.id,
+r.rest_name,
+r.rest_header_image,
+r.rest_rating_avg,
+r.rest_rating_amount,
+
+a.city,
+
+
+--filterable content
+rf.charge_car,
+rf.charge_ebike,
+rf.vegan,
+rf.vegetarian,
+rf.playground,
+rf.top_heuriger,
+rf.pay_card,
+rf.guest_rooms,
+
+rg.region_name,
+
+--CONCAT(a.lat, ' ', a.long) AS r_latlong
+
+json_build_object('latitude', a.lat,'longitude', a.long) as r_latlong
+
+--e.event_name as e_name,
+--et.time_open as et_time_open
+
+from
+
+restaurant r
+left join restaurant_features rf on r.id = rf.restaurant_id
+left join address a on r.id = a.owner_id
+--left join region reg on reg.id = r.id;
+JOIN region rg ON r.region = rg.id;
+
+--left JOIN event e ON r.id = e.restaurant_id
+--left JOIN event_times et ON e.id = et.event_id;
+

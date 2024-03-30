@@ -11,6 +11,7 @@ r.rest_name,
 r.rest_header_image,
 r.rest_rating_avg,
 r.rest_rating_amount,
+r.open_text,
 
 a.city,
 
@@ -27,6 +28,9 @@ rf.guest_rooms,
 
 rg.region_name,
 
+CONCAT('+',ph.country_code,' ',ph.area,' ',ph.number) AS phonenumber_display,
+CONCAT('00',ph.country_code,ph.area,ph.number) AS phonenumber_url,
+
 --CONCAT(a.lat, ' ', a.long) AS r_latlong
 
 json_build_object('latitude', a.lat,'longitude', a.long) as r_latlong
@@ -40,8 +44,8 @@ restaurant r
 left join restaurant_features rf on r.id = rf.restaurant_id
 left join address a on r.id = a.owner_id
 --left join region reg on reg.id = r.id;
-JOIN region rg ON r.region = rg.id;
+JOIN region rg ON r.region = rg.id
+left join phonenumber ph ON r.id = ph.restaurant_id;
 
 --left JOIN event e ON r.id = e.restaurant_id
 --left JOIN event_times et ON e.id = et.event_id;
-

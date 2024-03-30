@@ -6,6 +6,7 @@ AS
          r.rest_name,
          r.rest_header_image,
          r.rest_description,
+         CONCAT(SUBSTRING(r.rest_description,1,160),'...') as rest_description_short,
          r.rest_rating_avg,
          r.rest_rating_amount,
          r.rest_website,
@@ -67,19 +68,19 @@ AS
          rg.region_description,
          rg.region_img,
          --json_build_object('latitude', a.lat, 'longitude', a.long) AS r_latlong,
-         ri.image_path,
-         Concat('+', ph.country_code, ' ', ph.area, ' ', ph.number) AS
-         phonenumber_display,
-         Concat('00', ph.country_code, ph.area, ph.number)          AS
-            phonenumber_url,
-  FROM   restaurant r
-         LEFT JOIN restaurant_features rf
-                ON r.id = rf.restaurant_id
-         LEFT JOIN address a
-                ON r.id = a.owner_id
-         JOIN region rg
-           ON r.region = rg.id
-         LEFT JOIN restaurant_images ri
-                ON ri.restaurant_id = r.id
-         LEFT JOIN phonenumber ph
-                ON r.id = ph.restaurant_id; 
+         --ri.image_path as gallery_image_path,
+        -- ri.caption,
+         Concat('+', ph.country_code, ' ', ph.area, ' ', ph.number) AS phonenumber_display,
+         Concat('00', ph.country_code, ph.area, ph.number) AS phonenumber_url
+
+  FROM   
+
+  restaurant r
+
+    LEFT JOIN restaurant_features rf ON r.id = rf.restaurant_id
+    LEFT JOIN address a ON r.id = a.owner_id
+    JOIN region rg ON r.region = rg.id
+    --LEFT JOIN restaurant_images ri ON r.id = ri.restaurant_id
+    LEFT JOIN phonenumber ph ON r.id = ph.restaurant_id
+
+    ;

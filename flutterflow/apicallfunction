@@ -1,0 +1,76 @@
+// Automatic FlutterFlow imports
+import '/backend/backend.dart';
+import '/backend/schema/structs/index.dart';
+import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_util.dart';
+import '/custom_code/actions/index.dart'; // Imports other custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
+import 'package:flutter/material.dart';
+// Begin custom action code
+// DO NOT REMOVE OR MODIFY THE CODE ABOVE!
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<dynamic> postApiCall(
+  String appId,
+  String appKey,
+  double? quantity,
+  String? measureUri,
+  String foodId,
+) async {
+  // Add your function code here!
+  // Base URL
+  String baseUrl = 'https://api.edamam.com/api/food-database/v2/nutrients';
+
+  // Query Params
+  var queryParams = {'app_id': appId, 'app_key': appKey};
+
+  // Request Body
+  var requestBody = json.encode({
+    "ingredients": [
+      {"quantity": quantity, "measureURI": measureUri, "foodId": foodId}
+    ]
+  });
+
+  String queryString = Uri(queryParameters: queryParams).query;
+  var url = Uri.parse('$baseUrl?$queryString');
+
+  // Headers
+  var headers = {
+    'Content-Type': 'application/json',
+  };
+
+  // Making POST request
+  try {
+    var response = await http.post(url, headers: headers, body: requestBody);
+
+    // Handling the response
+    if (response.statusCode == 200) {
+      var resultResponse = json.decode(response.body);
+
+      return {
+        "status": 200,
+        "calories": resultResponse["calories"] != null
+            ? double.parse(resultResponse["calories"].toString())
+            : 0.0,
+        "fat": getValue(resultResponse, "FAT"),
+        "protein": getValue(resultResponse, "PROCNT"),
+        "carbs": getValue(resultResponse, "CHOCDF.net"),
+        "total_weight": resultResponse["totalWeight"] ?? 0.0
+      };
+    } else {
+      return {"status": 400, "o_status_code": response.statusCode};
+    }
+  } catch (e) {
+    return {"status": 500, "error": e};
+  }
+}
+
+dynamic getValue(var resultResponse, String key) {
+  return (resultResponse["totalNutrients"] != null
+      ? (resultResponse["totalNutrients"][key] != null
+          ? (resultResponse["totalNutrients"][key]["quantity"] ?? 0.0)
+          : 0.0)
+      : 0.0);
+}
